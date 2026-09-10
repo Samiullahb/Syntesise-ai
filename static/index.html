@@ -1,0 +1,119 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>SynThesisAI</title>
+  <style>
+    :root { color-scheme: dark; }
+    * { box-sizing: border-box; }
+    body { margin: 0; font-family: Inter, system-ui, sans-serif; background: #09090b; color: #f4f4f5; min-height: 100vh; }
+    .wrap { width: min(920px, 92%); margin: 0 auto; padding: 70px 0; }
+    .hero { text-align: center; margin-bottom: 38px; }
+    .badge { display: inline-block; padding: 7px 12px; border: 1px solid #27272a; border-radius: 999px; color: #a1a1aa; font-size: 13px; }
+    h1 { font-size: clamp(42px, 8vw, 72px); margin: 18px 0 10px; letter-spacing: -0.05em; }
+    .hero p { color: #a1a1aa; font-size: 18px; margin: 0; }
+    .card { background: #111113; border: 1px solid #27272a; border-radius: 22px; padding: 28px; box-shadow: 0 20px 60px rgba(0,0,0,.35); }
+    label { display: block; margin: 0 0 8px; color: #d4d4d8; font-size: 14px; font-weight: 600; }
+    input, select, button { width: 100%; border-radius: 12px; border: 1px solid #3f3f46; background: #18181b; color: #fff; padding: 13px 14px; font: inherit; }
+    input:focus, select:focus { outline: 2px solid #6366f1; border-color: transparent; }
+    .grid { display: grid; grid-template-columns: 1fr 180px; gap: 18px; margin-bottom: 20px; }
+    button { margin-top: 4px; background: #4f46e5; border-color: #6366f1; font-weight: 700; cursor: pointer; transition: .2s; }
+    button:hover { background: #6366f1; }
+    button:disabled { opacity: .55; cursor: wait; }
+    #status { min-height: 24px; margin: 18px 0 0; color: #a1a1aa; }
+    #results { margin-top: 20px; display: grid; gap: 14px; }
+    .result { border: 1px solid #27272a; border-radius: 16px; padding: 20px; background: #0f0f11; }
+    .result h3 { margin: 0 0 12px; }
+    .solution { white-space: pre-wrap; color: #d4d4d8; line-height: 1.6; }
+    .pass { color: #86efac; font-size: 13px; }
+    .fail { color: #fca5a5; font-size: 13px; }
+    @media (max-width: 650px) { .grid { grid-template-columns: 1fr; } .wrap { padding: 40px 0; } }
+  </style>
+</head>
+<body>
+  <main class="wrap">
+    <section class="hero">
+      <span class="badge">Gemini 3.1 Pro Preview</span>
+      <h1>SynThesisAI</h1>
+      <p>Generate, solve, and check high-quality problems with an AI pipeline.</p>
+    </section>
+
+    <section class="card">
+      <form id="form">
+        <div style="margin-bottom:20px">
+          <label for="topic">Topic</label>
+          <input id="topic" required maxlength="500" placeholder="e.g. Algebra" />
+        </div>
+        <div class="grid">
+          <div>
+            <label for="domain">Domain</label>
+            <input id="domain" value="mathematics" maxlength="100" placeholder="e.g. mathematics" />
+          </div>
+          <div>
+            <label for="count">Number</label>
+            <input id="count" type="number" value="1" min="1" max="20" />
+          </div>
+        </div>
+        <button id="generate" type="submit">Generate</button>
+      </form>
+      <div id="status"></div>
+      <div id="results"></div>
+    </section>
+  </main>
+
+  <script>
+    const form = document.getElementById('form');
+    const button = document.getElementById('generate');
+    const status = document.getElementById('status');
+    const results = document.getElementById('results');
+
+    form.addEventListener('submit', async (event) => {
+      event.preventDefault();
+      button.disabled = true;
+      button.textContent = 'Generating...';
+      status.textContent = 'Running the AI pipeline...';
+      results.innerHTML = '';
+
+      try {
+        const response = await fetch('/generate', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({
+            topic: document.getElementById('topic').value.trim(),
+            domain: document.getElementById('domain').value.trim() || 'general',
+            count: Number(document.getElementById('count').value)
+          })
+        });
+
+        const data = await response.json();
+        if (!response.ok) throw new Error(data.detail || 'Generation failed.');
+
+        status.textContent = `Generated ${data.count} item(s).`;
+        data.results.forEach((item, index) => {
+          const card = document.createElement('article');
+          card.className = 'result';
+          const passed = item.checker?.passed;
+          card.innerHTML = `
+            <h3>Problem ${index + 1}</h3>
+            <div class="solution"><strong>Problem:</strong> ${escapeHtml(item.problem?.prompt || '')}</div>
+            <div class="solution" style="margin-top:12px"><strong>Solution:</strong> ${escapeHtml(item.solution?.answer || '')}</div>
+            <div class="${passed ? 'pass' : 'fail'}" style="margin-top:14px">Checker: ${passed ? 'Passed' : 'Needs review'}</div>`;
+          results.appendChild(card);
+        });
+      } catch (error) {
+        status.textContent = error.message;
+      } finally {
+        button.disabled = false;
+        button.textContent = 'Generate';
+      }
+    });
+
+    function escapeHtml(value) {
+      return String(value).replace(/[&<>'"]/g, char => ({
+        '&': '&amp;', '<': '&lt;', '>': '&gt;', "'": '&#39;', '"': '&quot;'
+      }[char]));
+    }
+  </script>
+</body>
+</html>
