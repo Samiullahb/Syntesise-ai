@@ -3,7 +3,7 @@ from __future__ import annotations
 from dataclasses import replace
 
 from synthesise.agents import CheckerAgent, EngineerAgent, TargetAgent
-from synthesise.config import load_config
+from synthesise.config import DEFAULT_GEMINI_MODEL, load_config
 from synthesise.pipeline import SynthesisPipeline
 
 
@@ -37,7 +37,9 @@ class FakeClient:
 def test_config_loads():
     config = load_config()
     assert config.engineer_model.provider == "gemini"
-    assert config.checker_model.model_name == "gemini-2.5-flash"
+    assert config.engineer_model.model_name == DEFAULT_GEMINI_MODEL
+    assert config.checker_model.model_name == DEFAULT_GEMINI_MODEL
+    assert config.target_model.model_name == DEFAULT_GEMINI_MODEL
 
 
 def test_engineer_checker_target(monkeypatch):
