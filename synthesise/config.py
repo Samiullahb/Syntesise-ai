@@ -8,6 +8,9 @@ from typing import Any
 import yaml
 
 
+DEFAULT_GEMINI_MODEL = "gemini-3.1-pro-preview"
+
+
 @dataclass(frozen=True)
 class ModelConfig:
     provider: str
@@ -36,7 +39,9 @@ class AppConfig:
 
 
 def _model(raw: dict[str, Any], env_name: str) -> ModelConfig:
-    model = os.getenv(env_name, raw["model_name"])
+    # Keep Gemini 3.1 Pro Preview as the application default. An environment
+    # override is supported for advanced users, but an empty override is ignored.
+    model = (os.getenv(env_name) or raw.get("model_name") or DEFAULT_GEMINI_MODEL).strip()
     return ModelConfig(
         provider=str(raw.get("provider", "gemini")).lower(),
         model_name=model,
@@ -52,8 +57,12 @@ def load_config(path: str | Path = "config/settings.yaml") -> AppConfig:
         max_workers=max(1, int(data.get("max_workers", 5))),
         output_dir=str(data.get("output_dir", "./results")),
         default_batch_id=str(data.get("default_batch_id", "batch_01")),
-        engineer_model=_model(data["engineer_model"], "GEMINI_ENGINEER_MODEL"),
-        checker_model=_model(data["checker_model"], "GEMINI_CHECKER_MODEL"),
-        target_model=_model(data["target_model"], "GEMINI_TARGET_MODEL"),
-        quality=QualityConfig(**data.get("quality", {})),
+        engineer_model=_model(data.get("engineer_model", {}), "GEMINI_ENGINEER_MODEL"),
+        checker_model=_model(data.get("checker_model", {}), "GEMINI_CHECKER_MODEL"),
+        target_model=_model(data.get("target_model", {}), "GEMINI_TARGET_MODEL"),
+        quality=QualityConfig(
+            min_score=float(data.get("quality", {}).get("min_score", 0.80)),
+            require_checker_pass=bool(data.get("quality", {}).get("require_checker_pass", True)),
+            max_refinement_attempts=int(data.get("quality", {}).get("max_refinement_attempts", 2)),
+        ),
     )
