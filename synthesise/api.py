@@ -2,18 +2,23 @@ from __future__ import annotations
 
 import os
 from dataclasses import asdict
+from pathlib import Path
 
 from fastapi import FastAPI, HTTPException
+from fastapi.responses import FileResponse
 from pydantic import BaseModel, Field
 
 from .config import load_config
 from .gemini import GeminiError
 from .pipeline import SynthesisPipeline
 
+BASE_DIR = Path(__file__).resolve().parent.parent
+STATIC_INDEX = BASE_DIR / "static" / "index.html"
+
 app = FastAPI(
     title="SynThesisAI API",
-    description="AI synthesis pipeline powered by Gemini 3.1 Pro Preview.",
-    version="1.0.0",
+    description="AI synthesis pipeline powered entirely by the Gemini API.",
+    version="1.1.0",
 )
 
 
@@ -23,20 +28,24 @@ class GenerateRequest(BaseModel):
     count: int = Field(default=1, ge=1, le=20)
 
 
-@app.get("/")
-def root() -> dict[str, str]:
-    return {"name": "SynThesisAI", "status": "online", "docs": "/docs"}
+@app.get("/", include_in_schema=False)
+def root() -> FileResponse:
+    """Serve the web UI from the same FastAPI process."""
+    if not STATIC_INDEX.exists():
+        raise HTTPException(status_code=404, detail="Web UI not found.")
+    return FileResponse(STATIC_INDEX)
 
 
 @app.get("/health")
 def health() -> dict[str, str]:
-    return {"status": "healthy"}
+    return {"status": "healthy", "provider": "gemini"}
 
 
 @app.post("/generate")
 def generate(request: GenerateRequest) -> dict:
     try:
-        config = load_config(os.getenv("SYNTHESISE_CONFIG", "config/settings.yaml"))
+        config_path = os.getenv("SYNTHESISE_CONFIG", "config/settings.yaml")
+        config = load_config(config_path)
         pipeline = SynthesisPipeline(config)
         results = pipeline.run_batch(request.topic, request.domain, request.count)
         return {
