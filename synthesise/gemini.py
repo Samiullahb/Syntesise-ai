@@ -44,21 +44,25 @@ class GeminiClient:
 
         self._client = genai.Client(api_key=api_key)
 
-    def _config(self, *, json_response: bool = False) -> types.GenerateContentConfig:
+    def _config(
+        self,
+        *,
+        json_response: bool = False,
+        system_instruction: str | None = None,
+    ) -> types.GenerateContentConfig:
         kwargs: dict[str, Any] = {
             "temperature": self.temperature,
             "max_output_tokens": self.max_output_tokens,
+            "system_instruction": system_instruction,
         }
         if json_response:
             kwargs["response_mime_type"] = "application/json"
         return types.GenerateContentConfig(**kwargs)
 
     def generate(self, prompt: str, *, system_instruction: str | None = None) -> str:
-        config = self._config()
-        if system_instruction:
-            config.system_instruction = system_instruction
-
+        config = self._config(system_instruction=system_instruction)
         last_error: Exception | None = None
+
         for attempt in range(self.retries):
             try:
                 response = self._client.models.generate_content(
@@ -85,11 +89,12 @@ class GeminiClient:
         *,
         system_instruction: str | None = None,
     ) -> dict[str, Any]:
-        config = self._config(json_response=True)
-        if system_instruction:
-            config.system_instruction = system_instruction
-
+        config = self._config(
+            json_response=True,
+            system_instruction=system_instruction,
+        )
         last_error: Exception | None = None
+
         for attempt in range(self.retries):
             try:
                 response = self._client.models.generate_content(
