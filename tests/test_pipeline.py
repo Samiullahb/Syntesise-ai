@@ -2,11 +2,8 @@ from __future__ import annotations
 
 from dataclasses import replace
 
-import pytest
-
 from synthesise.agents import CheckerAgent, EngineerAgent, TargetAgent
 from synthesise.config import load_config
-from synthesise.models import CheckResult, Problem
 from synthesise.pipeline import SynthesisPipeline
 
 
@@ -58,7 +55,8 @@ def test_engineer_checker_target(monkeypatch):
 def test_pipeline_offline(monkeypatch, tmp_path):
     monkeypatch.setattr("synthesise.agents.GeminiClient", FakeClient)
     config = load_config()
-    config = replace(config, output_dir=str(tmp_path), max_refinement_attempts=0)
+    quality = replace(config.quality, max_refinement_attempts=0)
+    config = replace(config, output_dir=str(tmp_path), quality=quality)
     pipeline = SynthesisPipeline(config)
     results = pipeline.run_batch("addition", "mathematics", 2)
     path = pipeline.save(results, "test_batch")
