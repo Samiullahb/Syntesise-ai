@@ -13,10 +13,20 @@ A Gemini-powered multi-agent content synthesis and quality-checking pipeline.
 
 The project uses Gemini models only. No OpenAI API is required.
 
+## Default model
+
+All three agents use **`gemini-3.1-pro-preview`** by default:
+
+- Engineer Agent: Gemini 3.1 Pro Preview
+- Checker Agent: Gemini 3.1 Pro Preview
+- Target Agent: Gemini 3.1 Pro Preview
+
+The application also protects against the retired Gemini 2.5 model IDs by automatically replacing those legacy IDs with Gemini 3.1 Pro Preview.
+
 ## Requirements
 
 - Python 3.11+
-- A Gemini API key
+- A Gemini API key with access to Gemini 3.1 Pro Preview
 
 Install dependencies:
 
@@ -43,26 +53,24 @@ Never commit `.env` or an API key. The application reads `GEMINI_API_KEY` from t
 Single request:
 
 ```bash
-python -m synthesize --topic "Algebra" --domain mathematics
+python -m synthesise --topic "Algebra" --domain mathematics
 ```
 
 Batch:
 
 ```bash
-python -m synthesize --topic "Create 10 probability problems" --domain mathematics --count 10
+python -m synthesise --topic "Create 10 probability problems" --domain mathematics --count 10
 ```
 
-Optional model overrides:
+The CLI defaults to `gemini-3.1-pro-preview`. Advanced users can override the model explicitly:
 
 ```bash
-python -m synthesize --topic "Cloud security" --domain technology --engineer-model gemini-2.5-pro --checker-model gemini-2.5-flash --target-model gemini-2.5-pro
+python -m synthesise --topic "Cloud security" --domain technology --engineer-model gemini-3.1-pro-preview --checker-model gemini-3.1-pro-preview --target-model gemini-3.1-pro-preview
 ```
 
 ## Configuration
 
 Edit `config/settings.yaml` to control models, concurrency, output paths, and quality thresholds.
-
-The stable Gemini 2.5 Pro and 2.5 Flash model IDs are used by default. They are suitable for the engineer/target reasoning stages and the faster checker stage.
 
 ## Testing
 
